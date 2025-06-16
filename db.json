@@ -1,0 +1,57 @@
+{
+  "bots": [
+    {
+      "id": "1",
+      "name": "Sentiment Bot",
+      "strategy": "sentiment",
+      "exchange": "kucoin",
+      "status": "active"
+    },
+    {
+      "id": "2",
+      "name": "Technical Bot",
+      "strategy": "technical",
+      "exchange": "binance",
+      "status": "paused"
+    }
+  ],
+  "portfolio": {
+    "balance": 10000,
+    "assets": [
+      { "symbol": "BTC", "amount": 0.5 },
+      { "symbol": "ETH", "amount": 2 }
+    ]
+  },
+  "signals": [
+    {
+      "id": "1",
+      "botId": "1",
+      "symbol": "BTCUSDT",
+      "signalType": "buy",
+      "timestamp": "2025-06-13T12:00:00Z"
+    }
+  ],
+  "trades": [
+    {
+      "id": "1",
+      "botId": "2",
+      "symbol": "ETHUSDT",
+      "side": "sell",
+      "price": 1800,
+      "quantity": 1,
+      "timestamp": "2025-06-13T11:30:00Z"
+    }
+  ],
+  "prices": [
+    {
+      "symbol": "BTCUSDT",
+      "price": 30000,
+      "timestamp": "2025-06-13T12:00:00Z"
+    },
+    {
+      "symbol": "ETHUSDT",
+      "price": 1800,
+      "timestamp": "2025-06-13T12:00:00Z"
+    }
+  ]
+}
