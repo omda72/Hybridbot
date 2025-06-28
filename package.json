@@ -17,8 +17,12 @@
   "dependencies": {
     "axios": "^1.5.0",
     "ethers": "^6.14.4",
+<<<<<<< HEAD
     "lodash": "^4.17.21",
     "lucide-react": "^0.344.0",
+=======
+    "lucide-react": "^0.511.0",
+>>>>>>> ad6f951f52f292865070043041ed400a4c7078a6
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.14.1",
