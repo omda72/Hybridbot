@@ -1,7 +1,6 @@
 import { TradingBot, Portfolio, Signal, Trade, Price } from '../types/trading';
 
-const API_BASE = "https://api-r4eb5eatnq-uc.a.run.app"; // Firebase Function URL
-
+const API_BASE = "https://hybridbot-backend-273820287691.us-central1.run.app"; // Your deployed Cloud Run API base URL
 export async function fetchBots(): Promise<TradingBot[]> {
   try {
     const res = await fetch(`${API_BASE}/bots`);

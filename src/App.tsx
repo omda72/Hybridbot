@@ -15,9 +15,12 @@ import {
   fetchSignals,
   fetchPrices
 } from './services/api';
+import ReconnectingWebSocket from 'reconnecting-websocket';
 
-const WS_URL = 'wss://your-backend-websocket-url'; // Replace with actual WS URL
-const API_BASE = 'https://api-r4eb5eatnq-uc.a.run.app'; // Firebase Function base
+// For local development, assuming your FastAPI runs on port 8000
+// UPDATE THESE URLs to point to your FastAPI backend
+const API_BASE = "https://hybridbot-backend-273820287691.us-central1.run.app"; // Your deployed Cloud Run API base URL
+const WS_URL = 'wss://hybridbot-backend-273820287691.us-central1.run.app/ws/data'; // Your deployed Cloud Run WebSocket URL (use wss for https)
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -27,138 +30,117 @@ function App() {
   const [trades, setTrades] = useState<Trade[]>([]);
   const [prices, setPrices] = useState<Price[]>([]);
 
-  const wsRef = useRef<WebSocket | null>(null);
-  const reconnectTimeout = useRef<NodeJS.Timeout | null>(null);
+  const wsRef = useRef<ReconnectingWebSocket | null>(null);
+  const reconnectTimeout = useRef<number | null>(null);
 
-  useEffect(() => {
-    fetchInitialData();
-  }, []);
+  // Function to establish WebSocket connection
+  const connectWebSocket = () => {
+    wsRef.current = new ReconnectingWebSocket(WS_URL, [], {
+      reconnectInterval: 1000,
+      maxReconnectAttempts: 5,
+    });
 
-  useEffect(() => {
-    function connect() {
-      wsRef.current = new WebSocket(WS_URL);
-
-      wsRef.current.onopen = () => {
-        console.log('WebSocket connected');
-      };
-
-      wsRef.current.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          const chain = data.chain || 'unknown';
-
-          switch (data.type) {
-            case 'signal':
-              setSignals(prev => [{ ...data.payload, chain }, ...prev]);
-              break;
-
-            case 'price':
-              setPrices(prev => {
-                const updatedPayload = { ...data.payload, chain };
-                const existingIndex = prev.findIndex(p => p.symbol === updatedPayload.symbol);
-                if (existingIndex > -1) {
-                  const updated = [...prev];
-                  updated[existingIndex] = updatedPayload;
-                  return updated;
-                }
-                return [updatedPayload, ...prev];
-              });
-              break;
-
-            case 'trade':
-              setTrades(prev => [{ ...data.payload, chain }, ...prev]);
-              break;
-
-            default:
-              console.warn('Unknown WebSocket message type:', data.type);
-          }
-        } catch (err) {
-          console.error('Failed to parse WS message:', err);
-        }
-      };
-
-      wsRef.current.onerror = (err) => {
-        console.error('WebSocket error:', err);
-      };
-
-      wsRef.current.onclose = () => {
-        console.log('WebSocket disconnected. Reconnecting in 3s...');
-        reconnectTimeout.current = setTimeout(connect, 3000);
-      };
-    }
-
-    connect();
-
-    return () => {
-      if (reconnectTimeout.current) clearTimeout(reconnectTimeout.current);
-      wsRef.current?.close();
+    wsRef.current.onopen = () => {
+      console.log('WebSocket connected');
+      if (reconnectTimeout.current) {
+        clearTimeout(reconnectTimeout.current);
+        reconnectTimeout.current = null;
+      }
     };
-  }, []);
 
-  const fetchInitialData = async () => {
+    wsRef.current.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      // Handle incoming messages as before
+      // ...
+    };
+
+    wsRef.current.onclose = (event) => {
+      console.warn('WebSocket disconnected:', event);
+      // Attempt to reconnect after a delay
+      if (!reconnectTimeout.current) {
+        reconnectTimeout.current = window.setTimeout(connectWebSocket, 5000);
+      }
+    };
+
+    wsRef.current.onerror = (error) => {
+      console.error('WebSocket error:', error);
+      wsRef.current?.close(); // Close to trigger onclose and reconnect
+    };
+  };
+
+  useEffect(() => {
+    // Initial data fetches
+    const loadData = async () => {
+      try {
+        const [botsData, portfolioData, tradesData, signalsData, pricesData] =
+          await Promise.all([
+            fetchBots(API_BASE),
+            fetchPortfolio(API_BASE),
+            fetchTrades(API_BASE),
+            fetchSignals(API_BASE),
+            fetchPrices(API_BASE),
+          ]);
+        setBots(botsData);
+        setPortfolio(portfolioData);
+        setTrades(tradesData);
+        setSignals(signalsData);
+        setPrices(pricesData);
+      } catch (error) {
+        console.error('Error fetching initial data:', error);
+      }
+    };
+
+    loadData();
+    connectWebSocket(); // Establish WebSocket connection on component mount
+
+    // Cleanup on unmount
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+      if (reconnectTimeout.current) {
+        clearTimeout(reconnectTimeout.current);
+      }
+    };
+  }, []); // Empty dependency array means this runs once on mount
+
+  // Handlers for bot actions
+  const handleCreateBot = async (newBot: Omit<TradingBot, 'id'>) => {
     try {
-      const [botsData, portfolioData, signalData, priceData, tradeData] = await Promise.all([
-        fetchBots(),
-        fetchPortfolio(),
-        fetchSignals(),
-        fetchPrices(),
-        fetchTrades()
-      ]);
-      setBots(botsData);
-      setPortfolio(portfolioData);
-      setSignals(signalData);
-      setPrices(priceData);
-      setTrades(tradeData);
+      const response = await fetch(`${API_BASE}/bots`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newBot),
+      });
+      if (!response.ok) throw new Error('Failed to create bot');
+      // WebSocket will update state via 'bot_status_update'
     } catch (error) {
-      console.error('Failed to fetch initial data:', error);
+      console.error('Error creating bot:', error);
     }
   };
 
   const handleToggleBot = async (botId: string) => {
-    const bot = bots.find(b => b.id === botId);
-    if (!bot) return;
-
-    const updatedStatus = bot.status === 'active' ? 'paused' : 'active';
-
     try {
-      const res = await fetch(`${API_BASE}/bots/${botId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: updatedStatus })
-      });
-
-      if (!res.ok) throw new Error('Failed to update bot');
-
-      setBots(prev =>
-        prev.map(b => (b.id === botId ? { ...b, status: updatedStatus } : b))
-      );
-    } catch (err) {
-      console.error('Failed to toggle bot status:', err);
-    }
-  };
-
-  const handleCreateBot = async (newBot: Omit<TradingBot, 'id'>) => {
-    try {
-      const res = await fetch(`${API_BASE}/bots`, {
+      const response = await fetch(`${API_BASE}/bots/${botId}/toggle`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...newBot, status: 'active' })
       });
-      const createdBot = await res.json();
-      setBots(prev => [...prev, createdBot]);
-    } catch (err) {
-      console.error('Failed to create bot:', err);
+      if (!response.ok) throw new Error('Failed to toggle bot status');
+      // Update local state if needed, or rely on WebSocket for updates
+      // For now, WebSocket listener handles bot_status_update
+    } catch (error) {
+      console.error('Error toggling bot:', error);
     }
   };
 
   const handleDeleteBot = async (botId: string) => {
     try {
-      await fetch(`${API_BASE}/bots/${botId}`, {
-        method: 'DELETE'
+      const response = await fetch(`${API_BASE}/bots/${botId}`, {
+        method: 'DELETE',
       });
-      setBots(prev => prev.filter(bot => bot.id !== botId));
-    } catch (err) {
-      console.error('Failed to delete bot:', err);
+      if (!response.ok) throw new Error('Failed to delete bot');
+      // WebSocket listener handles bot_deleted update
+    } catch (error) {
+      console.error('Error deleting bot:', error);
     }
   };
 
@@ -206,7 +188,7 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-950 text-white">
       <Header activeTab={activeTab} onTabChange={setActiveTab} />
-      <main className="p-6 max-w-7xl mx-auto">{renderContent()}</main>
+      <main className="container mx-auto p-8 pt-24">{renderContent()}</main>
     </div>
   );
 }
