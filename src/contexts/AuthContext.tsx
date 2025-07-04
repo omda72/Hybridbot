@@ -59,7 +59,7 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
   }
 };
 
-const API_BASE = process.env.REACT_APP_API_BASE || 'https://hybridbot-backend-273820287691.us-central1.run.app';
+const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:8000';
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);

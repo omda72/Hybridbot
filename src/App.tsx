@@ -22,8 +22,8 @@ import ReconnectingWebSocket from 'reconnecting-websocket';
 
 // For local development, assuming your FastAPI runs on port 8000
 // UPDATE THESE URLs to point to your FastAPI backend
-const API_BASE = "https://hybridbot-backend-273820287691.us-central1.run.app"; // Your deployed Cloud Run API base URL
-const WS_URL = 'wss://hybridbot-backend-273820287691.us-central1.run.app/ws/data'; // Your deployed Cloud Run WebSocket URL (use wss for https)
+const API_BASE = "http://localhost:8000"; // Local development API base URL
+const WS_URL = 'ws://localhost:8000/ws/data'; // Local development WebSocket URL
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
