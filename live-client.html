@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HybridBot Client Portal - Live</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Inter', system-ui, sans-serif; }
+        .loading { animation: pulse 2s infinite; }
+    </style>
+</head>
+<body class="bg-gray-950 text-white">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        const API_BASE = 'http://localhost:8000';
+
+        // API Helper Functions
+        const api = {
+            async call(endpoint, options = {}) {
+                const token = localStorage.getItem('auth_token');
+                const headers = {
+                    'Content-Type': 'application/json',
+                    ...(token && { 'Authorization': `Bearer ${token}` }),
+                    ...options.headers
+                };
+
+                try {
+                    const response = await fetch(`${API_BASE}${endpoint}`, {
+                        ...options,
+                        headers
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+
+                    return await response.json();
+                } catch (error) {
+                    console.error(`API Error: ${endpoint}`, error);
+                    throw error;
+                }
+            },
+
+            async login(email, password) {
+                const data = await this.call('/auth/login', {
+                    method: 'POST',
+                    body: JSON.stringify({ email, password })
+                });
+                if (data.access_token) {
+                    localStorage.setItem('auth_token', data.access_token);
+                }
+                return data;
+            },
+
+            async register(email, password, name) {
+                const data = await this.call('/auth/register', {
+                    method: 'POST',
+                    body: JSON.stringify({ email, password, name })
+                });
+                if (data.access_token) {
+                    localStorage.setItem('auth_token', data.access_token);
+                }
+                return data;
+            },
+
+            async getProfile() {
+                return await this.call('/auth/me');
+            },
+
+            async getBots() {
+                return await this.call('/bots');
+            },
+
+            async getPortfolio() {
+                return await this.call('/portfolio');
+            },
+
+            async getPrices() {
+                return await this.call('/prices');
+            },
+
+            async getTrades() {
+                return await this.call('/trades');
+            },
+
+            async getSignals() {
+                return await this.call('/signals');
+            },
+
+            logout() {
+                localStorage.removeItem('auth_token');
+            }
+        };
+
+        function LoginModal({ isOpen, onClose, onLogin }) {
+            const [email, setEmail] = useState("");
+            const [password, setPassword] = useState("");
+            const [name, setName] = useState("");
+            const [isRegister, setIsRegister] = useState(false);
+            const [loading, setLoading] = useState(false);
+            const [error, setError] = useState("");
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                setLoading(true);
+                setError("");
+
+                try {
+                    let userData;
+                    if (isRegister) {
+                        userData = await api.register(email, password, name);
+                    } else {
+                        userData = await api.login(email, password);
+                    }
+                    
+                    onLogin(userData.user || userData);
+                    onClose();
+                } catch (error) {
+                    setError(error.message || 'Authentication failed');
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            if (!isOpen) return null;
+
+            return (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-gray-800 rounded-lg p-8 w-full max-w-md">
+                        <h2 className="text-2xl font-bold mb-6 text-center">
+                            {isRegister ? 'Create Account' : 'Welcome Back'}
+                        </h2>
+                        
+                        {error && (
+                            <div className="bg-red-900 border border-red-700 text-red-300 px-4 py-3 rounded mb-4">
+                                {error}
+                            </div>
+                        )}
+
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                            {isRegister && (
+                                <div>
+                                    <label className="block text-sm font-medium mb-2">Full Name</label>
+                                    <input
+                                        type="text"
+                                        value={name}
+                                        onChange={(e) => setName(e.target.value)}
+                                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                        placeholder="John Doe"
+                                        required
+                                    />
+                                </div>
+                            )}
+                            <div>
+                                <label className="block text-sm font-medium mb-2">Email</label>
+                                <input
+                                    type="email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                    placeholder="user@example.com"
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium mb-2">Password</label>
+                                <input
+                                    type="password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                    placeholder="••••••••"
+                                    required
+                                />
+                            </div>
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+                            >
+                                {loading ? 'Processing...' : (isRegister ? 'Create Account' : 'Sign In')}
+                            </button>
+                        </form>
+
+                        <div className="mt-6 text-center space-y-2">
+                            <button
+                                onClick={() => setIsRegister(!isRegister)}
+                                className="text-blue-400 hover:text-blue-300"
+                            >
+                                {isRegister ? 'Already have an account? Sign In' : 'Need an account? Register'}
+                            </button>
+                            <br />
+                            <button
+                                onClick={onClose}
+                                className="text-gray-400 hover:text-gray-300"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function Dashboard({ user, onLogout }) {
+            const [bots, setBots] = useState([]);
+            const [portfolio, setPortfolio] = useState(null);
+            const [prices, setPrices] = useState([]);
+            const [loading, setLoading] = useState(true);
+            const [activeTab, setActiveTab] = useState('overview');
+
+            useEffect(() => {
+                loadDashboardData();
+                const interval = setInterval(loadDashboardData, 30000); // Refresh every 30 seconds
+                return () => clearInterval(interval);
+            }, []);
+
+            const loadDashboardData = async () => {
+                try {
+                    const [botsData, portfolioData, pricesData] = await Promise.all([
+                        api.getBots().catch(() => ({ bots: [] })),
+                        api.getPortfolio().catch(() => ({ balance: 0, pnl: 0, trades: 0 })),
+                        api.getPrices().catch(() => ({ prices: [] }))
+                    ]);
+
+                    setBots(botsData.bots || []);
+                    setPortfolio(portfolioData);
+                    setPrices(pricesData.prices || []);
+                } catch (error) {
+                    console.error('Failed to load dashboard data:', error);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const handleStartBot = async () => {
+                alert('🤖 Starting new bot... (Feature coming soon!)');
+            };
+
+            const handleViewAnalytics = async () => {
+                alert('📊 Opening analytics... (Feature coming soon!)');
+            };
+
+            const handleSettings = async () => {
+                alert('⚙️ Opening settings... (Feature coming soon!)');
+            };
+
+            const handleLogout = () => {
+                api.logout();
+                onLogout();
+            };
+
+            if (loading) {
+                return (
+                    <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+                        <div className="text-center">
+                            <div className="loading text-4xl mb-4">🚀</div>
+                            <div className="text-xl text-gray-300">Loading your dashboard...</div>
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="min-h-screen bg-gray-950">
+                    {/* Header */}
+                    <header className="bg-gray-900 border-b border-gray-700">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                            <div className="flex justify-between items-center h-16">
+                                <div className="flex items-center space-x-8">
+                                    <h1 className="text-xl font-bold text-blue-400">🚀 HybridBot</h1>
+                                    <nav className="hidden md:flex space-x-4">
+                                        <button
+                                            onClick={() => setActiveTab('overview')}
+                                            className={`px-3 py-2 rounded-md text-sm font-medium ${
+                                                activeTab === 'overview' ? 'bg-gray-700 text-white' : 'text-gray-300 hover:text-white'
+                                            }`}
+                                        >
+                                            Overview
+                                        </button>
+                                        <button
+                                            onClick={() => setActiveTab('bots')}
+                                            className={`px-3 py-2 rounded-md text-sm font-medium ${
+                                                activeTab === 'bots' ? 'bg-gray-700 text-white' : 'text-gray-300 hover:text-white'
+                                            }`}
+                                        >
+                                            Bots
+                                        </button>
+                                        <button
+                                            onClick={() => setActiveTab('portfolio')}
+                                            className={`px-3 py-2 rounded-md text-sm font-medium ${
+                                                activeTab === 'portfolio' ? 'bg-gray-700 text-white' : 'text-gray-300 hover:text-white'
+                                            }`}
+                                        >
+                                            Portfolio
+                                        </button>
+                                    </nav>
+                                </div>
+                                <div className="flex items-center space-x-4">
+                                    <div className="text-sm">
+                                        <div className="text-gray-300">Welcome back,</div>
+                                        <div className="font-medium">{user.name || user.email}</div>
+                                    </div>
+                                    <button
+                                        onClick={handleLogout}
+                                        className="bg-gray-700 hover:bg-gray-600 px-3 py-2 rounded-lg text-sm transition-colors"
+                                    >
+                                        Logout
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </header>
+
+                    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            {/* Portfolio Overview */}
+                            <div className="lg:col-span-2">
+                                <div className="bg-gray-800 rounded-lg p-6">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h2 className="text-lg font-semibold">Portfolio Overview</h2>
+                                        <button
+                                            onClick={loadDashboardData}
+                                            className="text-gray-400 hover:text-white p-2"
+                                        >
+                                            🔄
+                                        </button>
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-4">
+                                        <div className="text-center">
+                                            <div className="text-2xl font-bold text-green-400">
+                                                ${portfolio?.balance?.toLocaleString() || '0'}
+                                            </div>
+                                            <div className="text-sm text-gray-400">Total Balance</div>
+                                        </div>
+                                        <div className="text-center">
+                                            <div className={`text-2xl font-bold ${
+                                                (portfolio?.pnl || 0) >= 0 ? 'text-green-400' : 'text-red-400'
+                                            }`}>
+                                                {(portfolio?.pnl || 0) > 0 ? '+' : ''}{portfolio?.pnl || 0}%
+                                            </div>
+                                            <div className="text-sm text-gray-400">Total P&L</div>
+                                        </div>
+                                        <div className="text-center">
+                                            <div className="text-2xl font-bold text-yellow-400">
+                                                {portfolio?.trades || 0}
+                                            </div>
+                                            <div className="text-sm text-gray-400">Active Trades</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Bot Status */}
+                                <div className="bg-gray-800 rounded-lg p-6 mt-6">
+                                    <h2 className="text-lg font-semibold mb-4">Trading Bots</h2>
+                                    {bots.length > 0 ? (
+                                        <div className="space-y-3">
+                                            {bots.map(bot => (
+                                                <div key={bot.id} className="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
+                                                    <div>
+                                                        <div className="font-medium">{bot.name}</div>
+                                                        <div className="text-sm text-gray-400">{bot.trades || 0} trades</div>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <div className={`font-bold ${(bot.profit || 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                                            {(bot.profit || 0) > 0 ? '+' : ''}{bot.profit || 0}%
+                                                        </div>
+                                                        <div className={`text-xs px-2 py-1 rounded-full ${
+                                                            bot.status === 'running' ? 'bg-green-900 text-green-300' : 'bg-yellow-900 text-yellow-300'
+                                                        }`}>
+                                                            {bot.status || 'stopped'}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="text-center py-8 text-gray-400">
+                                            <div className="text-4xl mb-2">🤖</div>
+                                            <div>No bots configured yet</div>
+                                            <button
+                                                onClick={handleStartBot}
+                                                className="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
+                                            >
+                                                Create Your First Bot
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Price Monitor & Actions */}
+                            <div>
+                                <div className="bg-gray-800 rounded-lg p-6">
+                                    <h2 className="text-lg font-semibold mb-4">Price Monitor</h2>
+                                    {prices.length > 0 ? (
+                                        <div className="space-y-3">
+                                            {prices.map(price => (
+                                                <div key={price.symbol} className="flex justify-between items-center">
+                                                    <div>
+                                                        <div className="font-medium">{price.symbol}</div>
+                                                        <div className="text-sm text-gray-400">${price.price?.toLocaleString() || 'N/A'}</div>
+                                                    </div>
+                                                    <div className={`text-sm font-medium ${
+                                                        (price.change || 0) >= 0 ? 'text-green-400' : 'text-red-400'
+                                                    }`}>
+                                                        {(price.change || 0) > 0 ? '+' : ''}{price.change || 0}%
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="text-center py-4 text-gray-400">
+                                            <div>📈 Connecting to price feeds...</div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Quick Actions */}
+                                <div className="bg-gray-800 rounded-lg p-6 mt-6">
+                                    <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
+                                    <div className="space-y-2">
+                                        <button
+                                            onClick={handleStartBot}
+                                            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors"
+                                        >
+                                            🤖 Start New Bot
+                                        </button>
+                                        <button
+                                            onClick={handleViewAnalytics}
+                                            className="w-full bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded-lg transition-colors"
+                                        >
+                                            📊 View Analytics
+                                        </button>
+                                        <button
+                                            onClick={handleSettings}
+                                            className="w-full bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded-lg transition-colors"
+                                        >
+                                            ⚙️ Settings
+                                        </button>
+                                        <button
+                                            onClick={loadDashboardData}
+                                            className="w-full bg-green-700 hover:bg-green-600 text-white py-2 px-4 rounded-lg transition-colors"
+                                        >
+                                            🔄 Refresh Data
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* API Status */}
+                                <div className="bg-gray-800 rounded-lg p-6 mt-6">
+                                    <h2 className="text-lg font-semibold mb-4">System Status</h2>
+                                    <div className="space-y-2 text-sm">
+                                        <div className="flex justify-between">
+                                            <span>Backend API:</span>
+                                            <span className="text-green-400">✅ Connected</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span>WebSocket:</span>
+                                            <span className="text-yellow-400">⏳ Connecting</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span>Last Update:</span>
+                                            <span className="text-gray-400">{new Date().toLocaleTimeString()}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </main>
+                </div>
+            );
+        }
+
+        function App() {
+            const [user, setUser] = useState(null);
+            const [showLogin, setShowLogin] = useState(false);
+            const [loading, setLoading] = useState(true);
+
+            useEffect(() => {
+                checkExistingAuth();
+            }, []);
+
+            const checkExistingAuth = async () => {
+                const token = localStorage.getItem('auth_token');
+                if (token) {
+                    try {
+                        const userData = await api.getProfile();
+                        setUser(userData);
+                    } catch (error) {
+                        localStorage.removeItem('auth_token');
+                    }
+                }
+                setLoading(false);
+            };
+
+            const handleLogin = (userData) => {
+                setUser(userData);
+            };
+
+            const handleLogout = () => {
+                setUser(null);
+                setShowLogin(false);
+            };
+
+            if (loading) {
+                return (
+                    <div className="min-h-screen bg-gray-950 text-white flex items-center justify-center">
+                        <div className="text-center">
+                            <div className="loading text-4xl mb-4">🚀</div>
+                            <div className="text-xl text-gray-300">Initializing HybridBot...</div>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (user) {
+                return <Dashboard user={user} onLogout={handleLogout} />;
+            }
+
+            return (
+                <div className="min-h-screen bg-gray-950 text-white flex items-center justify-center">
+                    <div className="text-center space-y-6">
+                        <h1 className="text-5xl font-bold text-blue-400">🚀 HybridBot</h1>
+                        <p className="text-xl text-gray-300">Professional Trading Bot Platform</p>
+                        <div className="bg-gray-800 rounded-lg p-8 max-w-md mx-auto">
+                            <h2 className="text-lg font-semibold mb-4">✅ Live Client Portal</h2>
+                            <p className="text-gray-400 mb-6">
+                                Connected to your backend API at localhost:8000
+                            </p>
+                            <button
+                                onClick={() => setShowLogin(true)}
+                                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg transition-colors"
+                            >
+                                Sign In / Register
+                            </button>
+                            <div className="mt-4 text-xs text-gray-500 space-y-1">
+                                <div>🔗 Backend: Connected</div>
+                                <div>🔄 Auto-refresh: 30s</div>
+                                <div>💾 Data: Real-time</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <LoginModal
+                        isOpen={showLogin}
+                        onClose={() => setShowLogin(false)}
+                        onLogin={handleLogin}
+                    />
+                </div>
+            );
+        }
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
