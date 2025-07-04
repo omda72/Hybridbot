@@ -49,9 +49,44 @@ function App() {
     };
 
     wsRef.current.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      // Handle incoming messages as before
-      // ...
+      try {
+        const data = JSON.parse(event.data);
+        
+        // Handle different message types
+        switch (data.type) {
+          case 'bot_status_update':
+            setBots(prevBots => 
+              prevBots.map(bot => 
+                bot.id === data.bot_id 
+                  ? { ...bot, status: data.status, lastUpdate: data.timestamp }
+                  : bot
+              )
+            );
+            break;
+          case 'new_signal':
+            setSignals(prevSignals => [data.signal, ...prevSignals.slice(0, 49)]);
+            break;
+          case 'new_trade':
+            setTrades(prevTrades => [data.trade, ...prevTrades.slice(0, 99)]);
+            break;
+          case 'price_update':
+            setPrices(prevPrices => 
+              prevPrices.map(price => 
+                price.symbol === data.symbol 
+                  ? { ...price, ...data.price }
+                  : price
+              )
+            );
+            break;
+          case 'portfolio_update':
+            setPortfolio(data.portfolio);
+            break;
+          default:
+            console.warn('Unknown message type:', data.type);
+        }
+      } catch (error) {
+        console.error('Error parsing WebSocket message:', error);
+      }
     };
 
     wsRef.current.onclose = (event) => {
