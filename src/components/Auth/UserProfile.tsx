@@ -65,11 +65,12 @@ export default function UserProfile() {
     }
   };
 
-  const togglePreference = async (key: string, value: boolean) => {
+  const togglePreference = async (key: string, value: any) => {
     try {
+      const currentPrefs = user?.preferences || { theme: 'dark', notifications: true, twoFactorEnabled: false };
       await updateUser({
         preferences: {
-          ...user?.preferences,
+          ...currentPrefs,
           [key]: value,
         },
       });
@@ -316,9 +317,9 @@ export default function UserProfile() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="block text-sm font-medium text-gray-400 mb-1">Last Login</label>
-            <p className="text-white">
-              {user.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'Never'}
-            </p>
+                         <p className="text-white">
+               {user.createdAt ? new Date(user.createdAt).toLocaleString() : 'Never'}
+             </p>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-400 mb-1">Account Provider</label>

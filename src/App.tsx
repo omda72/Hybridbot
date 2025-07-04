@@ -4,13 +4,13 @@ import PortfolioOverview from './components/Dashboard/PortfolioOverview';
 import BotStatus from './components/Dashboard/BotStatus';
 import PriceMonitor from './components/Dashboard/PriceMonitor';
 import SignalFeed from './components/Signals/SignalFeed';
-import BotManager from './components/Bots/BotManager';
+import SimpleBotManager from './components/Bots/SimpleBotManager';
 import TradeHistory from './components/Trading/TradeHistory';
 import SettingsPanel from './components/Settings/SettingsPanel';
 import AuthManager from './components/Auth/AuthManager';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
 import { AuthProvider } from './contexts/AuthContext';
-import { TradingBot, Portfolio, Signal, Trade, Price } from './types/trading';
+import { TradingBot, Portfolio, Signal, Trade, PriceData } from './types/trading';
 import {
   fetchBots,
   fetchPortfolio,
@@ -31,7 +31,7 @@ function App() {
   const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
   const [signals, setSignals] = useState<Signal[]>([]);
   const [trades, setTrades] = useState<Trade[]>([]);
-  const [prices, setPrices] = useState<Price[]>([]);
+  const [prices, setPrices] = useState<PriceData[]>([]);
 
   const wsRef = useRef<ReconnectingWebSocket | null>(null);
   const reconnectTimeout = useRef<number | null>(null);
@@ -39,8 +39,7 @@ function App() {
   // Function to establish WebSocket connection
   const connectWebSocket = () => {
     wsRef.current = new ReconnectingWebSocket(WS_URL, [], {
-      reconnectInterval: 1000,
-      maxReconnectAttempts: 5,
+      maxReconnectionDelay: 1000,
     });
 
     wsRef.current.onopen = () => {
@@ -112,11 +111,11 @@ function App() {
       try {
         const [botsData, portfolioData, tradesData, signalsData, pricesData] =
           await Promise.all([
-            fetchBots(API_BASE),
-            fetchPortfolio(API_BASE),
-            fetchTrades(API_BASE),
-            fetchSignals(API_BASE),
-            fetchPrices(API_BASE),
+            fetchBots(),
+            fetchPortfolio(),
+            fetchTrades(),
+            fetchSignals(),
+            fetchPrices(),
           ]);
         setBots(botsData);
         setPortfolio(portfolioData);
@@ -143,7 +142,7 @@ function App() {
   }, []); // Empty dependency array means this runs once on mount
 
   // Handlers for bot actions
-  const handleCreateBot = async (newBot: Omit<TradingBot, 'id'>) => {
+  const handleCreateBot = async (newBot: any) => {
     try {
       const response = await fetch(`${API_BASE}/bots`, {
         method: 'POST',
@@ -202,7 +201,7 @@ function App() {
         );
       case 'bots':
         return (
-          <BotManager
+          <SimpleBotManager
             bots={bots}
             onCreateBot={handleCreateBot}
             onToggleBot={handleToggleBot}

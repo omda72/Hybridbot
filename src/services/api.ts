@@ -1,4 +1,4 @@
-import { TradingBot, Portfolio, Signal, Trade, Price } from '../types/trading';
+import { TradingBot, Portfolio, Signal, Trade, PriceData } from '../types/trading';
 
 const API_BASE = "https://hybridbot-backend-273820287691.us-central1.run.app"; // Your deployed Cloud Run API base URL
 export async function fetchBots(): Promise<TradingBot[]> {
@@ -19,7 +19,7 @@ export async function fetchPortfolio(): Promise<Portfolio> {
     return await res.json();
   } catch (err) {
     console.error('Failed to fetch portfolio:', err);
-    return { totalValue: 0, assets: [] };
+    return { totalValue: 0, totalPnl: 0, totalPnlPercent: 0, assets: [] };
   }
 }
 
@@ -34,7 +34,7 @@ export async function fetchSignals(): Promise<Signal[]> {
   }
 }
 
-export async function fetchPrices(): Promise<Price[]> {
+export async function fetchPrices(): Promise<PriceData[]> {
   try {
     const res = await fetch(`${API_BASE}/prices`);
     if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
