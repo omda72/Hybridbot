@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>HybridBot Connection Test</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            background: #1a1a1a; 
+            color: white; 
+            padding: 20px; 
+        }
+        .container { max-width: 800px; margin: 0 auto; }
+        .test-result { 
+            margin: 10px 0; 
+            padding: 10px; 
+            border-radius: 5px; 
+            background: #333; 
+        }
+        .success { background: #0f5132; }
+        .error { background: #842029; }
+        .loading { background: #664d03; }
+        button { 
+            background: #0d6efd; 
+            border: none; 
+            color: white; 
+            padding: 10px 20px; 
+            margin: 5px; 
+            border-radius: 5px; 
+            cursor: pointer; 
+        }
+        button:hover { background: #0b5efd; }
+        pre { 
+            background: #2a2a2a; 
+            padding: 10px; 
+            border-radius: 5px; 
+            overflow-x: auto; 
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 HybridBot API Connection Test</h1>
+        
+        <div id="status" class="test-result loading">
+            ⏳ Ready to test connection...
+        </div>
+
+        <div style="margin: 20px 0;">
+            <button onclick="testConnection()">Test Basic Connection</button>
+            <button onclick="testLogin()">Test Login</button>
+            <button onclick="testEndpoints()">Test All Endpoints</button>
+            <button onclick="clearResults()">Clear Results</button>
+        </div>
+
+        <div id="results"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000';
+        const statusDiv = document.getElementById('status');
+        const resultsDiv = document.getElementById('results');
+
+        function addResult(title, success, data) {
+            const div = document.createElement('div');
+            div.className = `test-result ${success ? 'success' : 'error'}`;
+            div.innerHTML = `
+                <h3>${success ? '✅' : '❌'} ${title}</h3>
+                <pre>${JSON.stringify(data, null, 2)}</pre>
+            `;
+            resultsDiv.appendChild(div);
+        }
+
+        function setStatus(message, type = 'loading') {
+            statusDiv.className = `test-result ${type}`;
+            statusDiv.innerHTML = message;
+        }
+
+        async function testConnection() {
+            setStatus('🔍 Testing basic connection...');
+            try {
+                const response = await fetch(API_BASE);
+                const data = await response.json();
+                addResult('Basic Connection', response.ok, data);
+                setStatus('✅ Connection test complete', 'success');
+            } catch (error) {
+                addResult('Basic Connection', false, { error: error.message });
+                setStatus('❌ Connection failed', 'error');
+            }
+        }
+
+        async function testLogin() {
+            setStatus('🔐 Testing login...');
+            try {
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        email: 'test@test.com', 
+                        password: 'test123' 
+                    })
+                });
+                const data = await response.json();
+                addResult('Login Test', response.ok, data);
+                setStatus('✅ Login test complete', 'success');
+            } catch (error) {
+                addResult('Login Test', false, { error: error.message });
+                setStatus('❌ Login failed', 'error');
+            }
+        }
+
+        async function testEndpoints() {
+            setStatus('📊 Testing all endpoints...');
+            
+            const endpoints = [
+                { name: 'Portfolio', url: '/portfolio' },
+                { name: 'Bots', url: '/bots' },
+                { name: 'Prices', url: '/prices' },
+                { name: 'Trades', url: '/trades' },
+                { name: 'Signals', url: '/signals' }
+            ];
+
+            for (const endpoint of endpoints) {
+                try {
+                    const response = await fetch(`${API_BASE}${endpoint.url}`);
+                    const data = await response.json();
+                    addResult(endpoint.name, response.ok, data);
+                } catch (error) {
+                    addResult(endpoint.name, false, { error: error.message });
+                }
+            }
+            
+            setStatus('✅ All endpoint tests complete', 'success');
+        }
+
+        function clearResults() {
+            resultsDiv.innerHTML = '';
+            setStatus('📋 Results cleared', 'success');
+        }
+
+        // Auto-test on page load
+        window.onload = function() {
+            setTimeout(testConnection, 1000);
+        };
+    </script>
+</body>
+</html>
