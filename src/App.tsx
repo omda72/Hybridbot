@@ -7,6 +7,9 @@ import SignalFeed from './components/Signals/SignalFeed';
 import BotManager from './components/Bots/BotManager';
 import TradeHistory from './components/Trading/TradeHistory';
 import SettingsPanel from './components/Settings/SettingsPanel';
+import AuthManager from './components/Auth/AuthManager';
+import ProtectedRoute from './components/Auth/ProtectedRoute';
+import { AuthProvider } from './contexts/AuthContext';
 import { TradingBot, Portfolio, Signal, Trade, Price } from './types/trading';
 import {
   fetchBots,
@@ -221,10 +224,18 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
-      <Header activeTab={activeTab} onTabChange={setActiveTab} />
-      <main className="container mx-auto p-8 pt-24">{renderContent()}</main>
-    </div>
+    <AuthProvider>
+      <div className="min-h-screen bg-gray-950 text-white">
+        <AuthManager>
+          <Header activeTab={activeTab} onTabChange={setActiveTab} />
+        </AuthManager>
+        <main className="container mx-auto p-8 pt-24">
+          <ProtectedRoute>
+            {renderContent()}
+          </ProtectedRoute>
+        </main>
+      </div>
+    </AuthProvider>
   );
 }
 

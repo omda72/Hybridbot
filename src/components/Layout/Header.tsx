@@ -1,12 +1,18 @@
-import React from 'react';
-import { Bot, Settings, Bell, User } from 'lucide-react';
+import React, { useState } from 'react';
+import { Bot, Settings, Bell, User, LogIn } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
+import UserDropdown from '../Auth/UserDropdown';
 
 interface HeaderProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
+  onOpenLogin?: () => void;
+  onOpenRegister?: () => void;
 }
 
-export default function Header({ activeTab, onTabChange }: HeaderProps) {
+export default function Header({ activeTab, onTabChange, onOpenLogin, onOpenRegister }: HeaderProps) {
+  const [showProfile, setShowProfile] = useState(false);
+  const { isAuthenticated, isLoading } = useAuth();
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: Bot },
     { id: 'bots', label: 'Trading Bots', icon: Bot },
@@ -46,12 +52,33 @@ export default function Header({ activeTab, onTabChange }: HeaderProps) {
           </div>
 
           <div className="flex items-center space-x-4">
-            <button className="p-2 text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg">
+            {/* Notifications */}
+            <button className="p-2 text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg relative">
               <Bell className="w-5 h-5" />
+              <span className="absolute top-1 right-1 w-2 h-2 bg-blue-500 rounded-full"></span>
             </button>
-            <button className="p-2 text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg">
-              <User className="w-5 h-5" />
-            </button>
+
+            {/* Authentication Section */}
+            {isLoading ? (
+              <div className="w-8 h-8 bg-gray-700 rounded-full animate-pulse"></div>
+            ) : isAuthenticated ? (
+              <UserDropdown onOpenProfile={() => setShowProfile(true)} />
+            ) : (
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={onOpenLogin}
+                  className="px-4 py-2 text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg transition-colors font-medium"
+                >
+                  Sign In
+                </button>
+                <button
+                  onClick={onOpenRegister}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium"
+                >
+                  Sign Up
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
