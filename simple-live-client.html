@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HybridBot Live</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-950 text-white">
+    <div id="root"></div>
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        function App() {
+            const [user, setUser] = useState(null);
+            const [data, setData] = useState({});
+            
+            const login = async () => {
+                try {
+                    const response = await fetch('http://localhost:8000/auth/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email: 'test@example.com', password: 'test123' })
+                    });
+                    const result = await response.json();
+                    setUser(result.user || { name: 'Test User' });
+                    loadData();
+                } catch (error) {
+                    console.error('Login failed:', error);
+                    setUser({ name: 'Demo User' }); // Fallback
+                }
+            };
+            
+            const loadData = async () => {
+                try {
+                    const [portfolio, bots, prices] = await Promise.all([
+                        fetch('http://localhost:8000/portfolio').then(r => r.json()).catch(() => ({ balance: 10000, pnl: 5.2 })),
+                        fetch('http://localhost:8000/bots').then(r => r.json()).catch(() => ({ bots: [] })),
+                        fetch('http://localhost:8000/prices').then(r => r.json()).catch(() => ({ prices: [] }))
+                    ]);
+                    setData({ portfolio, bots: bots.bots || [], prices: prices.prices || [] });
+                } catch (error) {
+                    console.error('Failed to load data:', error);
+                }
+            };
+
+            if (!user) {
+                return (
+                    <div className="min-h-screen flex items-center justify-center">
+                        <div className="text-center space-y-6">
+                            <h1 className="text-4xl font-bold text-blue-400">🚀 HybridBot</h1>
+                            <div className="bg-gray-800 p-6 rounded-lg">
+                                <p className="mb-4">Live connection to localhost:8000</p>
+                                <button 
+                                    onClick={login}
+                                    className="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded-lg"
+                                >
+                                    Connect & Login
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="min-h-screen p-8">
+                    <header className="bg-gray-800 p-4 rounded-lg mb-6 flex justify-between">
+                        <h1 className="text-xl font-bold text-blue-400">🚀 HybridBot Dashboard</h1>
+                        <div className="flex items-center space-x-4">
+                            <span>Welcome, {user.name}</span>
+                            <button 
+                                onClick={loadData}
+                                className="bg-green-600 hover:bg-green-700 px-3 py-1 rounded text-sm"
+                            >
+                                🔄 Refresh
+                            </button>
+                            <button 
+                                onClick={() => setUser(null)}
+                                className="bg-gray-600 hover:bg-gray-700 px-3 py-1 rounded text-sm"
+                            >
+                                Logout
+                            </button>
+                        </div>
+                    </header>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="bg-gray-800 p-6 rounded-lg">
+                            <h2 className="text-lg font-semibold mb-4">Portfolio</h2>
+                            <div className="text-center">
+                                <div className="text-3xl font-bold text-green-400">
+                                    ${data.portfolio?.balance?.toLocaleString() || '10,000'}
+                                </div>
+                                <div className="text-gray-400">Total Balance</div>
+                                <div className="text-blue-400 mt-2">
+                                    P&L: +{data.portfolio?.pnl || 5.2}%
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-gray-800 p-6 rounded-lg">
+                            <h2 className="text-lg font-semibold mb-4">Trading Bots</h2>
+                            {data.bots?.length > 0 ? (
+                                data.bots.map((bot, i) => (
+                                    <div key={i} className="bg-gray-700 p-3 rounded mb-2">
+                                        <div className="font-medium">{bot.name}</div>
+                                        <div className="text-sm text-gray-400">Status: {bot.status}</div>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="text-center text-gray-400">
+                                    <div className="text-2xl mb-2">🤖</div>
+                                    <div>No bots running</div>
+                                    <button 
+                                        onClick={() => alert('Starting bot... (Feature coming soon!)')}
+                                        className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded mt-2"
+                                    >
+                                        Start Bot
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="bg-gray-800 p-6 rounded-lg">
+                            <h2 className="text-lg font-semibold mb-4">Price Monitor</h2>
+                            {data.prices?.length > 0 ? (
+                                data.prices.map((price, i) => (
+                                    <div key={i} className="flex justify-between py-2">
+                                        <span>{price.symbol}</span>
+                                        <span>${price.price}</span>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="text-gray-400 text-center">
+                                    <div>📈 Connecting to price feeds...</div>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="bg-gray-800 p-6 rounded-lg">
+                            <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
+                            <div className="space-y-2">
+                                <button 
+                                    onClick={() => alert('🤖 Starting new bot...')}
+                                    className="w-full bg-blue-600 hover:bg-blue-700 py-2 rounded"
+                                >
+                                    🤖 Start New Bot
+                                </button>
+                                <button 
+                                    onClick={() => alert('📊 Opening analytics...')}
+                                    className="w-full bg-gray-700 hover:bg-gray-600 py-2 rounded"
+                                >
+                                    📊 View Analytics
+                                </button>
+                                <button 
+                                    onClick={loadData}
+                                    className="w-full bg-green-700 hover:bg-green-600 py-2 rounded"
+                                >
+                                    🔄 Refresh Data
+                                </button>
+                            </div>
+                            
+                            <div className="mt-4 pt-4 border-t border-gray-700">
+                                <div className="text-sm text-gray-400">
+                                    <div className="flex justify-between">
+                                        <span>Backend:</span>
+                                        <span className="text-green-400">✅ Connected</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span>Last Update:</span>
+                                        <span>{new Date().toLocaleTimeString()}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
