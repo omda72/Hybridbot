@@ -1,0 +1,19 @@
+    # Use a lean Nginx image
+    FROM nginx:alpine
+
+    # Copy your built React app from the dist folder into Nginx's public directory
+    # Ensure this command points to where your 'dist' folder is relative to the Dockerfile.
+    # Since Dockerfile.frontend is in 'testproject' and 'dist' is also in 'testproject',
+    # './dist' is correct.
+    COPY ./dist /usr/share/nginx/html
+
+    # Copy a custom Nginx configuration to ensure single-page application routing
+    # This is crucial for React Router to work correctly on refreshes or direct URL access
+    COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+    # Expose port 80 for the Nginx server
+    EXPOSE 80
+
+    # Command to start Nginx
+    CMD ["nginx", "-g", "daemon off;"]
+    
