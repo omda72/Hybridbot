@@ -1,0 +1,7 @@
+    # cloudbuild.frontend.yaml
+    steps:
+    - name: 'gcr.io/cloud-builders/docker'
+      args: ['build', '-t', 'gcr.io/hybridbot-fe281/hybridbot-frontend', '-f', 'Dockerfile.frontend', '.']
+    images:
+    - 'gcr.io/hybridbot-fe281/hybridbot-frontend'
+    

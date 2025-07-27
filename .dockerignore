@@ -1,0 +1,23 @@
+# Ignore the functions directory when building the frontend Docker image
+functions/
+
+# Ignore node_modules (these are installed inside the Docker image)
+node_modules/
+
+# Ignore .pnpm-store (pnpm's global cache, not needed in build context)
+.pnpm-store/
+
+# Ignore Vite's cache
+.vite/
+
+# Ensure dist is NOT ignored (it contains your built frontend)
+!dist/
+
+# Other common ignores for frontend projects
+.git/
+.env
+.env.*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.DS_Store

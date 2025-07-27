@@ -1,7 +1,7 @@
 {
   "name": "vite-react-typescript-starter",
+  "version": "1.2.0",
   "private": true,
-  "version": "1.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -12,45 +12,42 @@
     "format": "prettier --write \"src/**/*.{js,jsx,ts,tsx,css,scss,md}\"",
     "prepare": "husky install",
     "test": "jest",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "audit": "yarn audit"
   },
   "dependencies": {
+    "autoprefixer": "^10.4.20",
     "axios": "^1.5.0",
     "ethers": "^6.14.4",
-<<<<<<< HEAD
     "lodash": "^4.17.21",
     "lucide-react": "^0.344.0",
-=======
-    "lucide-react": "^0.511.0",
->>>>>>> ad6f951f52f292865070043041ed400a4c7078a6
+    "postcss": "^8.4.47",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.14.1",
+    "reconnecting-websocket": "^4.4.0",
+    "rollup": "^4.44.1",
+    "tailwindcss": "^3.4.13",
     "ws": "^8.18.2"
   },
   "devDependencies": {
-    "@testing-library/jest-dom": "^5.16.5",
-    "@testing-library/react": "^14.0.0",
-    "@types/react": "^18.3.5",
-    "@types/react-dom": "^18.3.0",
-    "@vitejs/plugin-react": "^4.5.2",
-    "autoprefixer": "^10.4.18",
+    "@testing-library/jest-dom": "^5.17.0",
+    "@testing-library/react": "^14.3.1",
+    "@vitejs/plugin-react": "^3.0.0",
     "eslint": "^9.30.0",
-    "eslint-config-prettier": "^9.0.0",
+    "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "eslint-plugin-simple-import-sort": "^7.0.0",
-    "globals": "^15.9.0",
-    "husky": "^8.0.0",
-    "jest": "^29.5.0",
-    "jest-environment-jsdom": "^29.5.0",
-    "postcss": "^8.4.35",
-    "prettier": "^3.0.0",
-    "tailwindcss": "^3.4.1",
-    "typescript": "^5.5.3",
-    "typescript-eslint": "^8.3.0",
-    "vite": "^5.4.2"
+    "husky": "^8.0.3",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
+    "postcss-cli": "^10.1.0",
+    "prettier": "^3.6.2",
+    "typescript": "^5.6.3",
+    "typescript-eslint": "^8.8.1",
+    "vite": "^4.5.0"
   },
   "resolutions": {
     "react-error-overlay": "6.0.10"
